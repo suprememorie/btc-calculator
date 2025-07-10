@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>Jacky 的 BTC 複利計算機</title>
+</head>
+<body>
+<h2>Jacky BTC 複利計算器</h2>
+
+<label>初始本金（NT$）：</label><input type="number" id="initial" value="10000"><br><br>
+
+<label>每月投入（NT$）：</label><input type="number" id="dca" value="5000"><br><br>
+
+<label>年化報酬率（%）：</label><input type="number" id="annualRate" value="12"><br><br>
+
+<label>投資年數：</label><input type="number" id="years" value="5"><br><br>
+
+<button onclick="calculate()">🧮 開始計算</button>
+
+<h3>📊 計算結果：</h3>
+<div id="result"></div>
+
+<script>
+function calculate() {
+const initial = parseFloat(document.getElementById("initial").value);
+const dca = parseFloat(document.getElementById("dca").value);
+const annualRate = parseFloat(document.getElementById("annualRate").value) / 100;
+const years = parseInt(document.getElementById("years").value);
+
+const monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+const totalMonths = years * 12;
+
+let total = initial;
+let log = `🧾 初始本金：${initial.toLocaleString()} 元<br>`;
+for (let i = 1; i <= totalMonths; i++) {
+total = total * (1 + monthlyRate) + dca;
+if (i % 12 === 0 || i === totalMonths) {
+const year = i / 12;
+log += `📈 第 ${year} 年：${total.toFixed(2).toLocaleString()} 元<br>`;
+}
+}
+
+log += `<br>✅ 最終金額：約 ${total.toFixed(2).toLocaleString()} 元`;
+document.getElementById("result").innerHTML = log;
+}
+</script>
+</body>
+</html>
