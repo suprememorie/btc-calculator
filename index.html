@@ -2,10 +2,10 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>Jacky 的 BTC 複利計算機 v1.1</title>
+<title>Jacky 的 BTC 複利計算機 v1.2</title>
 <style>
 body { font-family: sans-serif; padding: 2em; background-color: #f5f5f5; }
-input { margin-bottom: 1em; padding: 0.5em; width: 200px; }
+input, select { margin-bottom: 1em; padding: 0.5em; width: 250px; }
 button { padding: 0.6em 1em; }
 table { border-collapse: collapse; width: 100%; margin-top: 1em; background-color: #fff; }
 th, td { border: 1px solid #ccc; padding: 0.6em; text-align: right; }
@@ -15,19 +15,39 @@ h3 { margin-top: 2em; }
 </head>
 <body>
 
-<h2>Jacky BTC 複利計算機 v1.1</h2>
+<h2>Jacky BTC 複利計算機 v1.2</h2>
 
 <label>初始本金（NT$）：</label><br>
 <input type="number" id="initial" value="10000"><br>
 
-<label>每月投入金額（NT$）：</label><br>
+<label>每期投入金額（NT$）：</label><br>
 <input type="number" id="dca" value="5000"><br>
 
-<label>年化報酬率（%）：</label><br>
-<input type="number" id="annualRate" value="12"><br>
+<label>利率數值：</label><br>
+<input type="number" id="rate" value="12">
+<select id="rateType">
+<option value="year">年利率</option>
+<option value="month" selected>月利率</option>
+<option value="week">週利率</option>
+<option value="day">日利率</option>
+</select><br>
 
-<label>投資年數：</label><br>
-<input type="number" id="years" value="5"><br>
+<label>投資期間：</label><br>
+<input type="number" id="duration" value="5">
+<select id="durationType">
+<option value="year" selected>年</option>
+<option value="month">月</option>
+<option value="week">週</option>
+<option value="day">日</option>
+</select><br>
+
+<label>複利週期：</label><br>
+<select id="compoundType">
+<option value="year">年複利</option>
+<option value="month" selected>月複利</option>
+<option value="week">週複利</option>
+<option value="day">日複利</option>
+</select><br>
 
 <label>目前 BTC 價格（NT$）：</label><br>
 <input type="number" id="btcPrice" value="2000000"><br>
@@ -39,56 +59,62 @@ h3 { margin-top: 2em; }
 <div id="table"></div>
 
 <script>
-function format(num) {
-return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+function getPeriodFactor(type) {
+const map = { year: 1, month: 12, week: 52, day: 365 };
+return map[type];
 }
 
 function calculate() {
 const initial = parseFloat(document.getElementById("initial").value) || 0;
 const dca = parseFloat(document.getElementById("dca").value) || 0;
-const annualRate = parseFloat(document.getElementById("annualRate").value) || 0;
-const years = parseInt(document.getElementById("years").value) || 0;
-const btcPrice = parseFloat(document.getElementById("btcPrice").value) || 1;
+const rate = parseFloat(document.getElementById("rate").value) / 100;
+const rateType = document.getElementById("rateType").value;
+const duration = parseInt(document.getElementById("duration").value);
+const durationType = document.getElementById("durationType").value;
+const compoundType = document.getElementById("compoundType").value;
+const btcPrice = parseFloat(document.getElementById("btcPrice").value);
 
-const monthlyRate = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
-const totalMonths = years * 12;
+const ratePerPeriod = Math.pow(1 + rate, 1 / getPeriodFactor(rateType)) - 1;
+const compoundPerYear = getPeriodFactor(compoundType);
+const totalPeriods = Math.floor(duration * (getPeriodFactor(durationType) / compoundPerYear));
 
 let total = initial;
 let totalInvested = initial;
-let rows = `<table><thead><tr>
-<th>月份</th><th>投入金額</th><th>利息收益</th><th>總資產</th>
+
+let tableHTML = `<table><thead><tr>
+<th>期數</th><th>投入</th><th>利息</th><th>總資產</th>
 </tr></thead><tbody>`;
 
-for (let i = 1; i <= totalMonths; i++) {
-const interest = total * monthlyRate;
+for (let i = 1; i <= totalPeriods; i++) {
+const interest = total * ratePerPeriod;
 total += interest + dca;
 totalInvested += dca;
-rows += `<tr>
+tableHTML += `<tr>
 <td>${i}</td>
-<td>${format(dca)}</td>
-<td>${format(interest)}</td>
-<td>${format(total)}</td>
+<td>${dca.toLocaleString()}</td>
+<td>${interest.toFixed(2).toLocaleString()}</td>
+<td>${total.toFixed(2).toLocaleString()}</td>
 </tr>`;
 }
 
-rows += "</tbody></table>";
+tableHTML += "</tbody></table>";
 
 const interestEarned = total - totalInvested;
 const growthRate = (interestEarned / totalInvested) * 100;
 const btcAmount = total / btcPrice;
 
-const summary = `
-🧾 投資總投入：${format(totalInvested)} 元<br>
-💰 總利息收益：${format(interestEarned)} 元<br>
+const summaryHTML = `
+🧾 總投入：${totalInvested.toLocaleString()} 元<br>
+💰 利息收益：${interestEarned.toFixed(2).toLocaleString()} 元<br>
 📈 成長率：約 ${growthRate.toFixed(2)}%<br>
-₿ 換算為 BTC：約 ${btcAmount.toFixed(6)} 顆（以每顆 ${format(btcPrice)} NT 計）<br>
-✅ 最終資產：約 ${format(total)} 元
+₿ 換算 BTC：約 ${btcAmount.toFixed(6)} 顆<br>
+✅ 最終資產：約 ${total.toFixed(2).toLocaleString()} 元
 `;
 
-document.getElementById("summary").innerHTML = summary;
-document.getElementById("table").innerHTML = rows;
+document.getElementById("summary").innerHTML = summaryHTML;
+document.getElementById("table").innerHTML = tableHTML;
 }
 </script>
+
 </body>
 </html>
-V1.1 更新複利功能
