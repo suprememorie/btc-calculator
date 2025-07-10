@@ -1,98 +1,103 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>比特幣複利計算機 v1.4</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>比特幣複利計算機 v1.5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    input, select, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 8px;
+    }
     h1 { text-align: center; }
-    label, select, input, button { display: block; margin: 10px 0; width: 100%; }
-    .result { background: #f0f0f0; padding: 10px; margin-top: 20px; border-radius: 8px; }
-    .result p { margin: 8px 0; }
+    canvas { margin-top: 30px; }
+    .result { background: #f7f7f7; padding: 12px; border-radius: 10px; margin-top: 20px; }
   </style>
 </head>
 <body>
 
-  <h1>📈 比特幣複利計算機 v1.4</h1>
+  <h1>📈 比特幣複利計算機 v1.5</h1>
 
   <label>初始本金（USDT）</label>
-  <input type="number" id="initial" value="0">
+  <input type="number" id="initial" value="150">
 
-  <label>每月投入（DCA，USDT）</label>
-  <input type="number" id="monthly" value="155">
+  <label>每月投入（USDT）</label>
+  <input type="number" id="monthly" value="150">
 
   <label>投資期數（年）</label>
   <input type="number" id="years" value="7">
 
-  <label>利率數值</label>
-  <input type="number" id="rate" value="1">
-
-  <label>利率類型</label>
-  <select id="rateType">
-    <option value="daily">日利率 %</option>
-    <option value="weekly">週利率 %</option>
-    <option value="monthly">月利率 %</option>
-    <option value="yearly">年利率 %</option>
-  </select>
-
-  <label>複利週期</label>
-  <select id="compoundCycle">
-    <option value="daily">日複利</option>
-    <option value="weekly">週複利</option>
-    <option value="monthly">月複利</option>
-    <option value="yearly">年複利</option>
-  </select>
-
-  <label>比特幣價格（美元）</label>
+  <label>比特幣價格（USD）</label>
   <input type="number" id="btcPrice" value="110000">
 
-  <button onclick="calculate()">📊 計算</button>
+  <button onclick="simulate()">📊 開始模擬</button>
 
   <div class="result" id="output"></div>
 
-  <script>
-    function convertRate(rate, from, to) {
-      const base = {
-        daily: 365,
-        weekly: 52,
-        monthly: 12,
-        yearly: 1
-      };
-      return (1 + rate / 100) ** (base[from] / base[to]) - 1;
-    }
+  <canvas id="chart" height="100"></canvas>
 
-    function calculate() {
+  <script>
+    function simulate() {
       const initial = parseFloat(document.getElementById("initial").value);
       const monthly = parseFloat(document.getElementById("monthly").value);
-      const years = parseFloat(document.getElementById("years").value);
-      const rate = parseFloat(document.getElementById("rate").value);
-      const rateType = document.getElementById("rateType").value;
-      const cycle = document.getElementById("compoundCycle").value;
+      const years = parseInt(document.getElementById("years").value);
       const btcPrice = parseFloat(document.getElementById("btcPrice").value);
 
-      const totalMonths = years * 12;
-      const cyclePerYear = { daily: 365, weekly: 52, monthly: 12, yearly: 1 };
-      const nPerYear = cyclePerYear[cycle];
-      const periods = nPerYear * years;
+      const months = years * 12;
+      const rates = [0.001, 0.003, 0.005]; // 0.1%, 0.3%, 0.5% 日利率換算為月利率近似值
+      const labels = Array.from({length: months}, (_, i) => `月${i+1}`);
+      const datasets = [];
+      const finalValues = [];
 
-      // 將利率統一轉換為複利週期對應利率
-      const effectiveRate = convertRate(rate, rateType, cycle);
+      rates.forEach((rate, idx) => {
+        let total = initial;
+        const data = [];
+        for (let i = 1; i <= months; i++) {
+          total = (total + monthly) * (1 + rate);
+          data.push(total.toFixed(2));
+        }
+        finalValues.push(total);
+        datasets.push({
+          label: `利率 ${(rate*100).toFixed(1)}% 月複利`,
+          data: data,
+          fill: false,
+          borderColor: ['#2ecc71', '#e67e22', '#e74c3c'][idx],
+          tension: 0.2
+        });
+      });
 
-      // 複利計算
-      let total = initial * Math.pow(1 + effectiveRate, periods);
-      for (let i = 0; i < totalMonths; i++) {
-        const t = (totalMonths - i) * (nPerYear / 12);
-        total += monthly * Math.pow(1 + effectiveRate, t);
-      }
+      // 顯示結果
+      let html = "";
+      finalValues.forEach((v, i) => {
+        const btcAmount = v / btcPrice;
+        html += `<p>💡 利率 ${(rates[i]*100).toFixed(1)}%：最終資產 <strong>${v.toFixed(2)} USDT</strong>，約 <strong>${btcAmount.toFixed(6)} BTC</strong></p>`;
+      });
+      document.getElementById("output").innerHTML = html;
 
-      const totalBTC = total / btcPrice;
-
-      document.getElementById("output").innerHTML = `
-        <p>📌 累積投入資金：約 <strong>${initial + monthly * totalMonths}</strong> USDT</p>
-        <p>💰 預估總資產：約 <strong>${total.toFixed(2)}</strong> USDT</p>
-        <p>₿ 換算為比特幣：約 <strong>${totalBTC.toFixed(6)}</strong> BTC</p>
-      `;
+      // 繪圖
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: '不同利率下的複利成長比較' }
+          }
+        }
+      });
     }
   </script>
 
