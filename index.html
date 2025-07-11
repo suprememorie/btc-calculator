@@ -2,119 +2,141 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>比特幣複利計算機 v1.5</title>
+  <title>比特幣複利計算機 v1.6</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    input, select, button {
-      width: 100%;
-      margin: 10px 0;
-      padding: 8px;
-    }
+    body { font-family: Arial; max-width: 750px; margin: auto; padding: 20px; }
     h1 { text-align: center; }
-    canvas { margin-top: 30px; }
-    .result { background: #f7f7f7; padding: 12px; border-radius: 10px; margin-top: 20px; }
+    input, select, button { width: 100%; margin: 8px 0; padding: 10px; }
+    #result, #btcPriceBox { margin-top: 20px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; }
   </style>
 </head>
 <body>
 
-  <h1>📈 比特幣複利計算機 v1.5</h1>
+<h1>📈 比特幣複利計算機 v1.6</h1>
 
-  <label>初始本金（USDT）</label>
-  <input type="number" id="initial" value="150">
+<label>初始本金（USDT）</label>
+<input type="number" id="initial" value="150">
 
-  <label>每月投入（USDT）</label>
-  <input type="number" id="monthly" value="150">
+<label>每月投入（USDT）</label>
+<input type="number" id="monthly" value="150">
 
-  <label>投資期數（年）</label>
-  <input type="number" id="years" value="7">
+<label>投資期數（年）</label>
+<input type="number" id="years" value="7">
 
-  <label>比特幣價格（USD）</label>
-  <input type="number" id="btcPrice" value="110000">
+<label>利率（數值）</label>
+<input type="number" id="rate" value="1">
 
-  <button onclick="simulate()">📊 開始模擬</button>
+<label>利率單位</label>
+<select id="rateType">
+  <option value="daily">日利率（%）</option>
+  <option value="weekly">週利率（%）</option>
+  <option value="monthly">月利率（%）</option>
+  <option value="yearly">年利率（%）</option>
+</select>
 
-  <div class="result" id="output"></div>
+<label>複利週期</label>
+<select id="compoundType">
+  <option value="daily">日複利</option>
+  <option value="weekly">週複利</option>
+  <option value="monthly" selected>月複利</option>
+  <option value="yearly">年複利</option>
+</select>
 
-  <canvas id="chart" height="100"></canvas>
+<label>比特幣價格（USD）</label>
+<input type="number" id="btcPrice" />
 
-  <script>
-    function simulate() {
-      const initial = parseFloat(document.getElementById("initial").value);
-      const monthly = parseFloat(document.getElementById("monthly").value);
-      const years = parseInt(document.getElementById("years").value);
-      const btcPrice = parseFloat(document.getElementById("btcPrice").value);
+<button onclick="calculate()">開始模擬</button>
 
-      const months = years * 12;
-      const rates = [0.001, 0.003, 0.005]; // 0.1%, 0.3%, 0.5% 日利率換算為月利率近似值
-      const labels = Array.from({length: months}, (_, i) => `月${i+1}`);
-      const datasets = [];
-      const finalValues = [];
+<div id="btcPriceBox">⏳ 讀取比特幣即時價格中...</div>
+<div id="result"></div>
+<canvas id="chart" height="100"></canvas>
 
-      rates.forEach((rate, idx) => {
-        let total = initial;
-        const data = [];
-        for (let i = 1; i <= months; i++) {
-          total = (total + monthly) * (1 + rate);
-          data.push(total.toFixed(2));
-        }
-        finalValues.push(total);
-        datasets.push({
-          label: `利率 ${(rate*100).toFixed(1)}% 月複利`,
-          data: data,
-          fill: false,
-          borderColor: ['#2ecc71', '#e67e22', '#e74c3c'][idx],
-          tension: 0.2
-        });
-      });
-
-      // 顯示結果
-      let html = "";
-      finalValues.forEach((v, i) => {
-        const btcAmount = v / btcPrice;
-        html += `<p>💡 利率 ${(rates[i]*100).toFixed(1)}%：最終資產 <strong>${v.toFixed(2)} USDT</strong>，約 <strong>${btcAmount.toFixed(6)} BTC</strong></p>`;
-      });
-      document.getElementById("output").innerHTML = html;
-
-      // 繪圖
-      const ctx = document.getElementById('chart').getContext('2d');
-      if (window.myChart) window.myChart.destroy();
-      window.myChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: datasets
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: { display: true, text: '不同利率下的複利成長比較' }
-          }
-        }
-      });
-    }
-  </script>
-{
-  "bitcoin": {
-    "usd": 116232,
-    "usd_market_cap": 2311755193564.704,
-    "usd_24h_vol": 59127094090.55639,
-    "usd_24h_change": 4.373402161974853,
-    "last_updated_at": 1752201163
-  },
-  "ethereum": {
-    "usd": 2957.88,
-    "usd_market_cap": 357173837644.33704,
-    "usd_24h_vol": 41226857973.85521,
-    "usd_24h_change": 6.250550953258441,
-    "last_updated_at": 1752201164
-  }
+<script>
+async function getBTCPrice() {
+  const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+  const data = await res.json();
+  const btcPrice = data.bitcoin.usd;
+  document.getElementById("btcPrice").value = btcPrice;
+  document.getElementById("btcPriceBox").innerText = `📊 即時比特幣價格：$${btcPrice} USD`;
 }
+
+function convertRate(rate, rateType, compoundType) {
+  const daily = {
+    daily: 1,
+    weekly: 1 / 7,
+    monthly: 1 / 30,
+    yearly: 1 / 365
+  };
+  return rate / 100 * (daily[rateType] / daily[compoundType]);
+}
+
+function calculate() {
+  const initial = parseFloat(document.getElementById("initial").value);
+  const monthly = parseFloat(document.getElementById("monthly").value);
+  const years = parseInt(document.getElementById("years").value);
+  const rate = parseFloat(document.getElementById("rate").value);
+  const rateType = document.getElementById("rateType").value;
+  const compoundType = document.getElementById("compoundType").value;
+  const btcPrice = parseFloat(document.getElementById("btcPrice").value);
+
+  const freq = { daily: 365, weekly: 52, monthly: 12, yearly: 1 };
+  const periods = years * freq[compoundType];
+  const adjRate = convertRate(rate, rateType, compoundType);
+  
+  let balance = initial;
+  const growth = [];
+  const tableRows = [];
+
+  for (let i = 1; i <= periods; i++) {
+    if (compoundType === 'monthly' && i % 1 === 0) balance += monthly;
+    if (compoundType === 'weekly' && i % 4 === 0) balance += monthly;
+    if (compoundType === 'daily' && i % 30 === 0) balance += monthly;
+    if (compoundType === 'yearly' && i % 1 === 0) balance += monthly * 12;
+
+    balance *= (1 + adjRate);
+    growth.push(balance.toFixed(2));
+
+    if (i % (freq[compoundType]) === 0 || i === 1 || i === periods) {
+      tableRows.push(`<tr>
+        <td>${i}</td>
+        <td>${balance.toFixed(2)}</td>
+        <td>${(balance / btcPrice).toFixed(6)} BTC</td>
+      </tr>`);
+    }
+  }
+
+  document.getElementById("result").innerHTML = `
+    <p>📌 最終資產總值：<strong>${balance.toFixed(2)} USDT</strong></p>
+    <p>₿ 換算為比特幣：約 <strong>${(balance / btcPrice).toFixed(6)} BTC</strong></p>
+    <table>
+      <tr><th>期數</th><th>資產（USDT）</th><th>預估 BTC</th></tr>
+      ${tableRows.join("")}
+    </table>
+  `;
+
+  const ctx = document.getElementById("chart").getContext("2d");
+  if (window.myChart) window.myChart.destroy();
+  window.myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array.from({length: growth.length}, (_, i) => i + 1),
+      datasets: [{
+        label: '資產成長曲線',
+        data: growth,
+        borderColor: '#2ecc71',
+        fill: false,
+        tension: 0.2
+      }]
+    }
+  });
+}
+
+getBTCPrice();
+</script>
+
 </body>
 </html>
