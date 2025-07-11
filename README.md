@@ -1,1 +1,1 @@
-# btc-calculator
+# btc-compound-app
