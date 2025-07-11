@@ -1,1 +1,72 @@
-..h
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>🧠 Pine Script 產生器</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+    textarea { width: 100%; height: 400px; font-family: monospace; font-size: 14px; margin-top: 10px; }
+    button { margin-top: 15px; padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>🧠 Pine Script 策略產生器</h2>
+  <p>以下是根據您剛才的輸入，自動生成的 Pine Script 策略程式碼：</p>
+
+  <textarea id="pineScriptOutput" readonly></textarea>
+  <button onclick="copyToClipboard()">📋 複製腳本</button>
+
+  <script>
+    const data = JSON.parse(localStorage.getItem("btcCalcData"));
+
+    const script = `//@version=5
+strategy("Jacky BTC 複利策略", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// 初始參數
+initialCapital = ${data.principal}
+contribution = ${data.contribution}
+btcPrice = ${data.btcPrice}
+rate = ${data.rate} / 100
+
+// 複利計算參數
+compoundPeriod = "${data.compoundFrequency}"
+rateUnit = "${data.rateUnit}"
+contributionFreq = "${data.contributionFrequency}"
+
+// 模擬週期 (年轉換)
+totalYears = ${data.years}
+barsPerYear = compoundPeriod == "daily" ? 365 :
+               compoundPeriod == "weekly" ? 52 :
+               compoundPeriod == "monthly" ? 12 : 1
+totalBars = totalYears * barsPerYear
+
+// 模擬條件與資金變化
+var float balance = initialCapital
+var float totalInvested = initialCapital
+var int counter = 0
+
+if (bar_index < totalBars)
+    if (counter % (barsPerYear / (contributionFreq == "daily" ? 365 : contributionFreq == "weekly" ? 52 : contributionFreq == "monthly" ? 12 : 1)) == 0)
+        balance += contribution
+        totalInvested += contribution
+
+    compoundRate = math.pow(1 + rate, 1 / barsPerYear)
+    balance *= compoundRate
+    counter += 1
+
+// 顯示策略回測
+plot(balance, title="複利資產", color=color.green)
+plot(totalInvested, title="總投入", color=color.gray)
+`;
+
+    document.getElementById("pineScriptOutput").value = script;
+
+    function copyToClipboard() {
+      const textarea = document.getElementById("pineScriptOutput");
+      textarea.select();
+      document.execCommand("copy");
+      alert("✅ Pine Script 已複製！");
+    }
+  </script>
+</body>
+</html>
