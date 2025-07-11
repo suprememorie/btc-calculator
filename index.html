@@ -2,141 +2,122 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>比特幣複利計算機 v1.6</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>比特幣複利計算機 v1.8</title>
   <style>
-    body { font-family: Arial; max-width: 750px; margin: auto; padding: 20px; }
-    h1 { text-align: center; }
-    input, select, button { width: 100%; margin: 8px 0; padding: 10px; }
-    #result, #btcPriceBox { margin-top: 20px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; }
+    body { font-family: sans-serif; padding: 20px; }
+    label, select, input { margin: 5px 0; display: block; }
+    table { margin-top: 20px; border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
   </style>
 </head>
 <body>
+  <h2>📈 比特幣複利計算機 v1.8</h2>
 
-<h1>📈 比特幣複利計算機 v1.6</h1>
+  <label>初始本金 (USDT):</label>
+  <input type="number" id="initialPrincipal" value="150" />
 
-<label>初始本金（USDT）</label>
-<input type="number" id="initial" value="150">
+  <label>每期投入金額 (USDT):</label>
+  <input type="number" id="contributionAmount" value="150" />
 
-<label>每月投入（USDT）</label>
-<input type="number" id="monthly" value="150">
+  <label>投入頻率：</label>
+  <select id="contributionFrequency">
+    <option value="daily">每日</option>
+    <option value="weekly">每週</option>
+    <option value="monthly" selected>每月</option>
+    <option value="yearly">每年</option>
+  </select>
 
-<label>投資期數（年）</label>
-<input type="number" id="years" value="7">
+  <label>年限 (年):</label>
+  <input type="number" id="years" value="7" />
 
-<label>利率（數值）</label>
-<input type="number" id="rate" value="1">
+  <label>利率數值 (%):</label>
+  <input type="number" id="rate" value="1" />
 
-<label>利率單位</label>
-<select id="rateType">
-  <option value="daily">日利率（%）</option>
-  <option value="weekly">週利率（%）</option>
-  <option value="monthly">月利率（%）</option>
-  <option value="yearly">年利率（%）</option>
-</select>
+  <label>利率單位：</label>
+  <select id="rateUnit">
+    <option value="daily">日利率</option>
+    <option value="weekly">週利率</option>
+    <option value="monthly" selected>月利率</option>
+    <option value="yearly">年利率</option>
+  </select>
 
-<label>複利週期</label>
-<select id="compoundType">
-  <option value="daily">日複利</option>
-  <option value="weekly">週複利</option>
-  <option value="monthly" selected>月複利</option>
-  <option value="yearly">年複利</option>
-</select>
+  <label>複利週期：</label>
+  <select id="compoundFrequency">
+    <option value="daily">日複利</option>
+    <option value="weekly">週複利</option>
+    <option value="monthly" selected>月複利</option>
+    <option value="yearly">年複利</option>
+  </select>
 
-<label>比特幣價格（USD）</label>
-<input type="number" id="btcPrice" />
+  <label>比特幣價格（USD）：</label>
+  <input type="number" id="btcPrice" value="116633" />
 
-<button onclick="calculate()">開始模擬</button>
+  <button onclick="calculate()">📊 開始計算</button>
 
-<div id="btcPriceBox">⏳ 讀取比特幣即時價格中...</div>
-<div id="result"></div>
-<canvas id="chart" height="100"></canvas>
+  <table id="resultTable">
+    <thead>
+      <tr>
+        <th>期數</th>
+        <th>投入總額 (USDT)</th>
+        <th>期末資產 (USDT)</th>
+        <th>累積比特幣 (BTC)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-<script>
-async function getBTCPrice() {
-  const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
-  const data = await res.json();
-  const btcPrice = data.bitcoin.usd;
-  document.getElementById("btcPrice").value = btcPrice;
-  document.getElementById("btcPriceBox").innerText = `📊 即時比特幣價格：$${btcPrice} USD`;
-}
+  <script>
+    const freqPerYear = {
+      daily: 365,
+      weekly: 52,
+      monthly: 12,
+      yearly: 1,
+    };
 
-function convertRate(rate, rateType, compoundType) {
-  const daily = {
-    daily: 1,
-    weekly: 1 / 7,
-    monthly: 1 / 30,
-    yearly: 1 / 365
-  };
-  return rate / 100 * (daily[rateType] / daily[compoundType]);
-}
-
-function calculate() {
-  const initial = parseFloat(document.getElementById("initial").value);
-  const monthly = parseFloat(document.getElementById("monthly").value);
-  const years = parseInt(document.getElementById("years").value);
-  const rate = parseFloat(document.getElementById("rate").value);
-  const rateType = document.getElementById("rateType").value;
-  const compoundType = document.getElementById("compoundType").value;
-  const btcPrice = parseFloat(document.getElementById("btcPrice").value);
-
-  const freq = { daily: 365, weekly: 52, monthly: 12, yearly: 1 };
-  const periods = years * freq[compoundType];
-  const adjRate = convertRate(rate, rateType, compoundType);
-  
-  let balance = initial;
-  const growth = [];
-  const tableRows = [];
-
-  for (let i = 1; i <= periods; i++) {
-    if (compoundType === 'monthly' && i % 1 === 0) balance += monthly;
-    if (compoundType === 'weekly' && i % 4 === 0) balance += monthly;
-    if (compoundType === 'daily' && i % 30 === 0) balance += monthly;
-    if (compoundType === 'yearly' && i % 1 === 0) balance += monthly * 12;
-
-    balance *= (1 + adjRate);
-    growth.push(balance.toFixed(2));
-
-    if (i % (freq[compoundType]) === 0 || i === 1 || i === periods) {
-      tableRows.push(`<tr>
-        <td>${i}</td>
-        <td>${balance.toFixed(2)}</td>
-        <td>${(balance / btcPrice).toFixed(6)} BTC</td>
-      </tr>`);
+    function getRatePerCompound(rate, fromUnit, toUnit) {
+      const from = freqPerYear[fromUnit];
+      const to = freqPerYear[toUnit];
+      const annualRate = Math.pow(1 + rate / 100, from) - 1;
+      return Math.pow(1 + annualRate, 1 / to) - 1;
     }
-  }
 
-  document.getElementById("result").innerHTML = `
-    <p>📌 最終資產總值：<strong>${balance.toFixed(2)} USDT</strong></p>
-    <p>₿ 換算為比特幣：約 <strong>${(balance / btcPrice).toFixed(6)} BTC</strong></p>
-    <table>
-      <tr><th>期數</th><th>資產（USDT）</th><th>預估 BTC</th></tr>
-      ${tableRows.join("")}
-    </table>
-  `;
+    function calculate() {
+      const principal = parseFloat(document.getElementById("initialPrincipal").value);
+      const contribution = parseFloat(document.getElementById("contributionAmount").value);
+      const years = parseFloat(document.getElementById("years").value);
+      const rate = parseFloat(document.getElementById("rate").value);
+      const rateUnit = document.getElementById("rateUnit").value;
+      const compoundFreq = document.getElementById("compoundFrequency").value;
+      const contributionFreq = document.getElementById("contributionFrequency").value;
+      const btcPrice = parseFloat(document.getElementById("btcPrice").value);
 
-  const ctx = document.getElementById("chart").getContext("2d");
-  if (window.myChart) window.myChart.destroy();
-  window.myChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: Array.from({length: growth.length}, (_, i) => i + 1),
-      datasets: [{
-        label: '資產成長曲線',
-        data: growth,
-        borderColor: '#2ecc71',
-        fill: false,
-        tension: 0.2
-      }]
+      const totalPeriods = freqPerYear[compoundFreq] * years;
+      const compoundRate = getRatePerCompound(rate, rateUnit, compoundFreq);
+
+      let balance = principal;
+      let totalInvested = principal;
+      let resultRows = "";
+
+      for (let i = 1; i <= totalPeriods; i++) {
+        if (i % (freqPerYear[compoundFreq] / freqPerYear[contributionFreq]) === 0) {
+          balance += contribution;
+          totalInvested += contribution;
+        }
+
+        balance *= (1 + compoundRate);
+        const btc = balance / btcPrice;
+
+        resultRows += `
+          <tr>
+            <td>${i}</td>
+            <td>${totalInvested.toFixed(2)}</td>
+            <td>${balance.toFixed(2)}</td>
+            <td>${btc.toFixed(6)}</td>
+          </tr>`;
+      }
+
+      document.querySelector("#resultTable tbody").innerHTML = resultRows;
     }
-  });
-}
-
-getBTCPrice();
-</script>
-
+  </script>
 </body>
 </html>
