@@ -54,6 +54,7 @@
   <input type="number" id="btcPrice" value="116633" />
 
   <button onclick="calculate()">📊 開始計算</button>
+  <button onclick="saveAndRedirect()">🧠 儲存參數並前往產生腳本 ➡️</button>
 
   <div class="summary" id="summaryText"></div>
 
@@ -121,7 +122,6 @@
 
       document.querySelector("#resultTable tbody").innerHTML = resultRows;
 
-      // Summary
       const btcFinal = (balance / btcPrice).toFixed(6);
       const summary = `
         📌 模擬時間：${years} 年<br>
@@ -131,6 +131,21 @@
         📊 總報酬倍率：約 <strong>${(balance / totalInvested).toFixed(2)} 倍</strong>
       `;
       document.getElementById("summaryText").innerHTML = summary;
+    }
+
+    function saveAndRedirect() {
+      const data = {
+        principal: parseFloat(document.getElementById("initialPrincipal").value),
+        contribution: parseFloat(document.getElementById("contributionAmount").value),
+        years: parseFloat(document.getElementById("years").value),
+        rate: parseFloat(document.getElementById("rate").value),
+        rateUnit: document.getElementById("rateUnit").value,
+        compoundFrequency: document.getElementById("compoundFrequency").value,
+        contributionFrequency: document.getElementById("contributionFrequency").value,
+        btcPrice: parseFloat(document.getElementById("btcPrice").value),
+      };
+      localStorage.setItem("btcCalcData", JSON.stringify(data));
+      window.location.href = "script-generator.html";
     }
   </script>
 </body>
