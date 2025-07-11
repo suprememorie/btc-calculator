@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>比特幣複利計算機 v1.8</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    label, select, input { margin: 5px 0; display: block; }
+    body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+    label, select, input, button { display: block; margin: 5px 0; width: 100%; max-width: 400px; }
     table { margin-top: 20px; border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 14px; }
+    .summary { margin-top: 30px; padding: 10px; background: #f9f9f9; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
@@ -31,7 +32,7 @@
   <input type="number" id="years" value="7" />
 
   <label>利率數值 (%):</label>
-  <input type="number" id="rate" value="1" />
+  <input type="number" id="rate" value="15" />
 
   <label>利率單位：</label>
   <select id="rateUnit">
@@ -53,6 +54,8 @@
   <input type="number" id="btcPrice" value="116633" />
 
   <button onclick="calculate()">📊 開始計算</button>
+
+  <div class="summary" id="summaryText"></div>
 
   <table id="resultTable">
     <thead>
@@ -93,17 +96,17 @@
 
       const totalPeriods = freqPerYear[compoundFreq] * years;
       const compoundRate = getRatePerCompound(rate, rateUnit, compoundFreq);
+      const contributionInterval = freqPerYear[compoundFreq] / freqPerYear[contributionFreq];
 
       let balance = principal;
       let totalInvested = principal;
       let resultRows = "";
 
       for (let i = 1; i <= totalPeriods; i++) {
-        if (i % (freqPerYear[compoundFreq] / freqPerYear[contributionFreq]) === 0) {
+        if (i % contributionInterval === 0) {
           balance += contribution;
           totalInvested += contribution;
         }
-
         balance *= (1 + compoundRate);
         const btc = balance / btcPrice;
 
@@ -117,6 +120,17 @@
       }
 
       document.querySelector("#resultTable tbody").innerHTML = resultRows;
+
+      // Summary
+      const btcFinal = (balance / btcPrice).toFixed(6);
+      const summary = `
+        📌 模擬時間：${years} 年<br>
+        📈 最終資產：<strong>${balance.toFixed(2)} USDT</strong><br>
+        🪙 累積比特幣數量：約 <strong>${btcFinal} BTC</strong><br>
+        💸 總投入金額：<strong>${totalInvested.toFixed(2)} USDT</strong><br>
+        📊 總報酬倍率：約 <strong>${(balance / totalInvested).toFixed(2)} 倍</strong>
+      `;
+      document.getElementById("summaryText").innerHTML = summary;
     }
   </script>
 </body>
